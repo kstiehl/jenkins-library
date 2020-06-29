@@ -65,7 +65,7 @@ def stashStageFiles(Script script, String stageName) {
 
 def unstashStageFiles(Script script, String stageName, List stashContent = []) {
     stashContent += script.commonPipelineEnvironment.configuration.stageStashes?.get(stageName)?.unstash ?: []
-
+    println("Thats the stashContent for stage ${stageName}: ${stashContent}")
     script.deleteDir()
     unstashAll(stashContent)
 
