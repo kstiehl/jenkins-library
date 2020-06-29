@@ -64,7 +64,7 @@ void call(parameters = [:]) {
         if (config.cfTargets) {
 
             def deploymentType = DeploymentType.selectFor(CloudPlatform.CLOUD_FOUNDRY, config.enableZeroDowntimeDeployment).toString()
-            def stageName = parameters.stageName ?: env.STAGE_NAME
+            def stageName = parameters.stage ?: env.STAGE_NAME
             Boolean runInNewWorkspace = false
 
             if (deploymentType == "blue-green") {
