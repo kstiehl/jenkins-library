@@ -64,6 +64,13 @@ void call(parameters = [:]) {
         if (config.cfTargets) {
 
             def deploymentType = DeploymentType.selectFor(CloudPlatform.CLOUD_FOUNDRY, config.enableZeroDowntimeDeployment).toString()
+            def stageName = parameters.stageName ?: env.STAGE_NAME
+            Boolean runInNewWorkspace = false
+
+            if (deploymentType == "blue-green") {
+                runInNewWorkspace = true
+            }
+
             def deployTool = script.commonPipelineEnvironment.configuration.isMta ? 'mtaDeployPlugin' : 'cf_native'
 
             for (int i = 0; i < config.cfTargets.size(); i++) {
@@ -71,6 +78,9 @@ void call(parameters = [:]) {
                 def target = config.cfTargets[i]
 
                 Closure deployment = {
+                    if (runInNewWorkspace) {
+                        utils.unstashStageFiles(script, stageName)
+                    }
 
                     cloudFoundryDeploy(
                         script: script,
@@ -81,10 +91,31 @@ void call(parameters = [:]) {
                         mtaPath: script.commonPipelineEnvironment.mtarFilePath,
                         deployTool: deployTool
                     )
+
+                    if (runInNewWorkspace) {
+                        utils.stashStageFiles(script, stageName)
+                    }
                 }
-                deployments.put("Deployment ${index}", deployment)
-                index++
+
+                if (runInNewWorkspace){
+                    deployments["Deployment ${i+1 > 1 ? i+1 : ''}"] = {
+                        if (env.POD_NAME) {
+                            dockerExecuteOnKubernetes(script: script, containerMap: ContainerMap.instance.getMap().get(stageName) ?: [:]) {
+                                deployment.call()
+                            }
+                        } else {
+                            node(env.NODE_NAME) {
+                                deployment.call()
+                            }
+                        }
+                    }
+                } else {
+                    deployments.put("Deployment ${index}", deployment)
+                    index++
+                }
             }
+
+
         }
 
         if (config.neoTargets) {
