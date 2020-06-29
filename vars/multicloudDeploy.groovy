@@ -70,6 +70,8 @@ void call(parameters = [:]) {
             if (deploymentType == "blue-green") {
                 runInNewWorkspace = true
                 echo "runInWorkSpace set to true"
+            } else {
+                echo "runInWorkSpace stays false"
             }
 
             def deployTool = script.commonPipelineEnvironment.configuration.isMta ? 'mtaDeployPlugin' : 'cf_native'
