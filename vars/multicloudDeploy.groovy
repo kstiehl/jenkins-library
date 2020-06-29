@@ -70,6 +70,7 @@ void call(parameters = [:]) {
             if (deploymentType == "blue-green") {
                 runInNewWorkspace = true
                 echo "runInWorkSpace set to true"
+                println("thats the stageName: ${stageName}")
             } else {
                 echo "runInWorkSpace stays false"
             }
