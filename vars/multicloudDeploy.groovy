@@ -69,6 +69,7 @@ void call(parameters = [:]) {
 
             if (deploymentType == "blue-green") {
                 runInNewWorkspace = true
+                echo "runInWorkSpace set to true"
             }
 
             def deployTool = script.commonPipelineEnvironment.configuration.isMta ? 'mtaDeployPlugin' : 'cf_native'
@@ -81,7 +82,7 @@ void call(parameters = [:]) {
                     if (runInNewWorkspace) {
                         utils.unstashStageFiles(script, stageName)
                     }
-
+                    echo "now call cfdeploy"
                     cloudFoundryDeploy(
                         script: script,
                         juStabUtils: utils,
@@ -91,7 +92,7 @@ void call(parameters = [:]) {
                         mtaPath: script.commonPipelineEnvironment.mtarFilePath,
                         deployTool: deployTool
                     )
-
+                    echo "cfdeploy done now stashing"
                     if (runInNewWorkspace) {
                         utils.stashStageFiles(script, stageName)
                     }
