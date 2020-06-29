@@ -80,7 +80,13 @@ void call(parameters = [:]) {
 
                 Closure deployment = {
                     if (runInNewWorkspace) {
-                        utils.unstashStageFiles(script, stageName)
+                        echo "unstash now:"
+                        try {
+                            utils.unstashStageFiles(script, stageName)
+                        } catch (Exception e) {
+                            println("there was an error while unstashing: ${e.message}")
+                        }
+
                     }
                     echo "now call cfdeploy"
                     cloudFoundryDeploy(
@@ -92,9 +98,14 @@ void call(parameters = [:]) {
                         mtaPath: script.commonPipelineEnvironment.mtarFilePath,
                         deployTool: deployTool
                     )
-                    echo "cfdeploy done now stashing"
+
                     if (runInNewWorkspace) {
-                        utils.stashStageFiles(script, stageName)
+                        echo "cfdeploy done now stashing"
+                        try {
+                            utils.stashStageFiles(script, stageName)
+                        } catch (Exception e) {
+                            println("there was an error while stashing: ${e.message}")
+                        }
                     }
                 }
 
