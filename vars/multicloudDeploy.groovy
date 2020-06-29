@@ -68,7 +68,7 @@ void call(parameters = [:]) {
             Boolean runInNewWorkspace = false
 
             if (deploymentType == "blue-green") {
-                runInNewWorkspace = true
+                //runInNewWorkspace = true
                 echo "runInWorkSpace set to true"
             } else {
                 echo "runInWorkSpace stays false"
