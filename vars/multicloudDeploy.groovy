@@ -79,15 +79,14 @@ void call(parameters = [:]) {
 
                 def target = config.cfTargets[i]
 
-                Closure deployment = {
-                    Utils deploymentUtils = new Utils()
+                Closure deployment = { deploymentUtils ->
                     if (runInNewWorkspace) {
                         deploymentUtils.unstashStageFiles(script, stageName)
                     }
 
                     cloudFoundryDeploy(
                         script: script,
-                        juStabUtils: utils,
+                        juStabUtils: deploymentUtils,
                         jenkinsUtilsStub: jenkinsUtils,
                         deployType: deploymentType,
                         cloudFoundry: target,
@@ -103,13 +102,13 @@ void call(parameters = [:]) {
                     deployments["Deployment ${index}"] = {
                         if (env.POD_NAME) {
                             dockerExecuteOnKubernetes(script: script, containerMap: ContainerMap.instance.getMap().get(stageName) ?: [:]) {
-                                deployment.call()
+                                deployment.call(utils)
                             }
                         } else {
                             println("Thats the env.node_name: ${env.NODE_NAME}")
                             node(env.NODE_NAME) {
                                 println("print before deployment.call()")
-                                deployment.call()
+                                deployment.call(utils)
                             }
                         }
                     }
