@@ -69,7 +69,7 @@ void call(parameters = [:]) {
             Boolean runInNewWorkspace = false
 
             if (deploymentType == "blue-green" && config.parallelExecution) {
-                runInNewWorkspace = true
+                runInNewWorkspace = false
                 echo "runInWorkSpace set to true"
                 println("thats the stageName: ${stageName}")
             }
