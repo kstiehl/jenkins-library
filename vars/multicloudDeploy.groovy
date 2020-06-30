@@ -84,13 +84,9 @@ void call(parameters = [:]) {
                 Closure deployment = {
                     if (runInNewWorkspace) {
                         echo "unstash now:"
-                        try {
-                            utils.unstashStageFiles(script, stageName)
-                        } catch (Exception e) {
-                            println("there was an error while unstashing: ${e.message}")
-                        }
-
+                        utils.unstashStageFiles(script, stageName)
                     }
+                    sh "ls -a"
                     echo "now call cfdeploy"
                     cloudFoundryDeploy(
                         script: script,
@@ -120,6 +116,7 @@ void call(parameters = [:]) {
                                 deployment.call()
                             }
                         } else {
+                            echo "now node() will be called"
                             node(env.NODE_NAME) {
                                 deployment.call()
                             }
