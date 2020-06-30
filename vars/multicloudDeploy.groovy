@@ -71,7 +71,7 @@ void call(parameters = [:]) {
                 def target = config.cfTargets[i]
 
                 Closure deployment = {
-
+                    utils.unstashStageFiles(script, stageName)
                     cloudFoundryDeploy(
                         script: script,
                         juStabUtils: utils,
@@ -81,9 +81,21 @@ void call(parameters = [:]) {
                         mtaPath: script.commonPipelineEnvironment.mtarFilePath,
                         deployTool: deployTool
                     )
+                    utils.stashStageFiles(script, stageName)
                 }
-                deployments.put("Deployment ${index}", deployment)
-                index++
+                deployments["Deployment ${i+1 > 1 ? i+1 : ''}"] = {
+                    if (env.POD_NAME) {
+                        dockerExecuteOnKubernetes(script: script, containerMap: ContainerMap.instance.getMap().get(stageName) ?: [:]) {
+                            deployment.call()
+                        }
+                    } else {
+                        node(env.NODE_NAME) {
+                            deployment.call()
+                        }
+                    }
+                }
+                //deployments.put("Deployment ${index}", deployment)
+                //index++
             }
         }
 
@@ -107,6 +119,7 @@ void call(parameters = [:]) {
                 }
                 deployments.put("Deployment ${index}", deployment)
                 index++
+
             }
         }
 
