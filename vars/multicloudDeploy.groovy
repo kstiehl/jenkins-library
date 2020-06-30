@@ -90,7 +90,9 @@ void call(parameters = [:]) {
                             deployment.call()
                         }
                     } else {
+                        println("Thats the env.node_name: ${env.NODE_NAME}")
                         node(env.NODE_NAME) {
+                            println("print before deployment.call()")
                             deployment.call()
                         }
                     }
