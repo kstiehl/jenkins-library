@@ -41,7 +41,7 @@ void call(parameters = [:]) {
         def script = checkScript(this, parameters) ?: this
         def utils = parameters.utils ?: new Utils()
         def jenkinsUtils = parameters.jenkinsUtils ?: new JenkinsUtils()
-        def stageName = parameters.stage
+        def stageName = parameters.stage ?: env.STAGE_NAME
 
         ConfigurationHelper configHelper = ConfigurationHelper.newInstance(this)
             .loadStepDefaults()
@@ -66,15 +66,25 @@ void call(parameters = [:]) {
 
             def deploymentType = DeploymentType.selectFor(CloudPlatform.CLOUD_FOUNDRY, config.enableZeroDowntimeDeployment).toString()
             def deployTool = script.commonPipelineEnvironment.configuration.isMta ? 'mtaDeployPlugin' : 'cf_native'
+            Boolean runInNewWorkspace = false
+
+            if (deploymentType == "blue-green") {
+                runInNewWorkspace = true
+                echo "runInWorkSpace set to true"
+                println("thats the stageName: ${stageName}")
+            }
+            echo "runInWorkSpace stays false"
 
             for (int i = 0; i < config.cfTargets.size(); i++) {
 
                 def target = config.cfTargets[i]
 
                 Closure deployment = {
-                    //Utils deployUtils = new Utils()
-                    //deployUtils.unstashStageFiles(script, stageName)
-                    utils.unstashStageFiles(script, stageName)
+                    Utils deploymentUtils = new Utils()
+                    if (runInNewWorkspace) {
+                        deploymentUtils.unstashStageFiles(script, stageName)
+                    }
+
                     cloudFoundryDeploy(
                         script: script,
                         juStabUtils: utils,
@@ -84,22 +94,29 @@ void call(parameters = [:]) {
                         mtaPath: script.commonPipelineEnvironment.mtarFilePath,
                         deployTool: deployTool
                     )
-                    //deployUtils.stashStageFiles(script, stageName)
-                    utils.stashStageFiles(script, stageName)
-
+                    if (runInNewWorkspace) {
+                        echo "cfdeploy done now stashing"
+                        deploymentUtils.stashStageFiles(script, stageName)
+                    }
                 }
-                deployments["Deployment ${i+1 > 1 ? i+1 : ''}"] = {
-                    if (env.POD_NAME) {
-                        dockerExecuteOnKubernetes(script: script, containerMap: ContainerMap.instance.getMap().get(stageName) ?: [:]) {
-                            deployment.call()
-                        }
-                    } else {
-                        println("Thats the env.node_name: ${env.NODE_NAME}")
-                        node(env.NODE_NAME) {
-                            println("print before deployment.call()")
-                            deployment.call()
+                if (runInNewWorkspace){
+                    deployments["Deployment ${index}"] = {
+                        if (env.POD_NAME) {
+                            dockerExecuteOnKubernetes(script: script, containerMap: ContainerMap.instance.getMap().get(stageName) ?: [:]) {
+                                deployment.call()
+                            }
+                        } else {
+                            println("Thats the env.node_name: ${env.NODE_NAME}")
+                            node(env.NODE_NAME) {
+                                println("print before deployment.call()")
+                                deployment.call()
+                            }
                         }
                     }
+                    index++
+                } else {
+                        deployments.put("Deployment ${index}", deployment)
+                        index++
                 }
                 //deployments.put("Deployment ${index}", deployment)
                 //index++
