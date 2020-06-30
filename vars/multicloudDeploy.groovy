@@ -68,7 +68,7 @@ void call(parameters = [:]) {
             def deployTool = script.commonPipelineEnvironment.configuration.isMta ? 'mtaDeployPlugin' : 'cf_native'
             Boolean runInNewWorkspace = false
 
-            if (deploymentType == "blue-green") {
+            if (deploymentType == "blue-green" && config.parallelExecution) {
                 runInNewWorkspace = true
                 echo "runInWorkSpace set to true"
                 println("thats the stageName: ${stageName}")
