@@ -64,17 +64,6 @@ void call(parameters = [:]) {
         if (config.cfTargets) {
 
             def deploymentType = DeploymentType.selectFor(CloudPlatform.CLOUD_FOUNDRY, config.enableZeroDowntimeDeployment).toString()
-            def stageName = parameters.stage ?: env.STAGE_NAME
-            Boolean runInNewWorkspace = false
-
-            if (deploymentType == "blue-green") {
-                runInNewWorkspace = true
-                echo "runInWorkSpace set to true"
-                println("thats the stageName: ${stageName}")
-            } else {
-                echo "runInWorkSpace stays false"
-            }
-
             def deployTool = script.commonPipelineEnvironment.configuration.isMta ? 'mtaDeployPlugin' : 'cf_native'
 
             for (int i = 0; i < config.cfTargets.size(); i++) {
@@ -82,12 +71,7 @@ void call(parameters = [:]) {
                 def target = config.cfTargets[i]
 
                 Closure deployment = {
-                    if (runInNewWorkspace) {
-                        echo "unstash now:"
-                        utils.unstashStageFiles(script, stageName)
-                    }
-                    sh "ls -a"
-                    echo "now call cfdeploy"
+
                     cloudFoundryDeploy(
                         script: script,
                         juStabUtils: utils,
@@ -97,38 +81,10 @@ void call(parameters = [:]) {
                         mtaPath: script.commonPipelineEnvironment.mtarFilePath,
                         deployTool: deployTool
                     )
-
-                    if (runInNewWorkspace) {
-                        echo "cfdeploy done now stashing"
-                        try {
-                            println("Thats what we need to stash for stage ${stageName}: ")
-                            utils.stashStageFiles(script, stageName)
-                        } catch (Exception e) {
-                            println("there was an error while stashing: ${e.message}")
-                        }
-                    }
                 }
-
-                if (runInNewWorkspace){
-                    deployments["Deployment ${i+1 > 1 ? i+1 : ''}"] = {
-                        if (env.POD_NAME) {
-                            dockerExecuteOnKubernetes(script: script, containerMap: ContainerMap.instance.getMap().get(stageName) ?: [:]) {
-                                deployment.call()
-                            }
-                        } else {
-                            echo "now node() will be called"
-                            node(env.NODE_NAME) {
-                                deployment.call()
-                            }
-                        }
-                    }
-                } else {
-                    deployments.put("Deployment ${index}", deployment)
-                    index++
-                }
+                deployments.put("Deployment ${index}", deployment)
+                index++
             }
-
-
         }
 
         if (config.neoTargets) {
