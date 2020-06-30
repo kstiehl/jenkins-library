@@ -66,14 +66,11 @@ void call(parameters = [:]) {
 
             def deploymentType = DeploymentType.selectFor(CloudPlatform.CLOUD_FOUNDRY, config.enableZeroDowntimeDeployment).toString()
             def deployTool = script.commonPipelineEnvironment.configuration.isMta ? 'mtaDeployPlugin' : 'cf_native'
-            Boolean runInNewWorkspace = false
+            Boolean runInIsolatedWorkspace = false
 
             if (config.cfTargets.size() > 1 && deploymentType == "blue-green") {
-                runInNewWorkspace = true
-                echo "runInWorkSpace set to true"
-                println("thats the stageName: ${stageName}")
+                runInIsolatedWorkspace = true
             }
-            echo "runInWorkSpace stays false"
 
             for (int i = 0; i < config.cfTargets.size(); i++) {
 
@@ -81,7 +78,7 @@ void call(parameters = [:]) {
 
                 Closure deployment = {
                     Utils deploymentUtils = new Utils()
-                    if (runInNewWorkspace) {
+                    if (runInIsolatedWorkspace) {
                         deploymentUtils.unstashStageFiles(script, stageName)
                     }
 
@@ -94,32 +91,27 @@ void call(parameters = [:]) {
                         mtaPath: script.commonPipelineEnvironment.mtarFilePath,
                         deployTool: deployTool
                     )
-                    if (runInNewWorkspace) {
-                        echo "cfdeploy done now stashing"
+                    if (runInIsolatedWorkspace) {
                         deploymentUtils.stashStageFiles(script, stageName)
                     }
                 }
-                if (runInNewWorkspace){
+                if (runInIsolatedWorkspace){
                     deployments["Deployment ${index}"] = {
                         if (env.POD_NAME) {
                             dockerExecuteOnKubernetes(script: script, containerMap: ContainerMap.instance.getMap().get(stageName) ?: [:]) {
                                 deployment.call()
                             }
                         } else {
-                            println("Thats the env.node_name: ${env.NODE_NAME}")
                             node(env.NODE_NAME) {
-                                println("print before deployment.call()")
                                 deployment.call()
                             }
                         }
                     }
                     index++
                 } else {
-                        deployments.put("Deployment ${index}", deployment)
-                        index++
+                    deployments.put("Deployment ${index}", deployment)
+                    index++
                 }
-                //deployments.put("Deployment ${index}", deployment)
-                //index++
             }
         }
 
@@ -143,7 +135,6 @@ void call(parameters = [:]) {
                 }
                 deployments.put("Deployment ${index}", deployment)
                 index++
-
             }
         }
 
@@ -151,12 +142,9 @@ void call(parameters = [:]) {
             error "Deployment skipped because no targets defined!"
         }
 
-        echo "Executing deployments"
         if (config.parallelExecution) {
-            echo "Executing deployments in parallel"
             parallel deployments
         } else {
-            echo "Executing deployments in sequence"
             def closuresToRun = deployments.values().asList()
             Collections.shuffle(closuresToRun) // Shuffle the list so no one tries to rely on the order of execution
             for (int i = 0; i < closuresToRun.size(); i++) {
