@@ -24,6 +24,7 @@ def stash(name, include = '**/*.*', exclude = '', useDefaultExcludes = true) {
 }
 
 def stashList(script, List stashes) {
+    println("Thatsw the list of stashes arriving in stashlist(): ${stashes}")
     for (def stash : stashes) {
         def name = stash.name
         def include = stash.includes
@@ -53,7 +54,7 @@ def stashWithMessage(name, msg, include = '**/*.*', exclude = '', useDefaultExcl
 
 def stashStageFiles(Script script, String stageName) {
     List stashes = script.commonPipelineEnvironment.configuration.stageStashes?.get(stageName)?.stashes ?: []
-
+    println("Thats the stashes for stage ${stageName} we are going to stash: ${stashes}")
     stashList(script, stashes)
 
     //NOTE: We do not delete the directory in case Jenkins runs on Kubernetes.

@@ -105,6 +105,7 @@ void call(parameters = [:]) {
                     if (runInNewWorkspace) {
                         echo "cfdeploy done now stashing"
                         try {
+                            println("Thats what we need to stash for stage ${stageName}: ")
                             utils.stashStageFiles(script, stageName)
                         } catch (Exception e) {
                             println("there was an error while stashing: ${e.message}")
