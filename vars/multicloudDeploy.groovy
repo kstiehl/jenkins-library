@@ -72,7 +72,8 @@ void call(parameters = [:]) {
                 def target = config.cfTargets[i]
 
                 Closure deployment = {
-                    utils.unstashStageFiles(script, stageName)
+                    Utils deployUtils = new Utils()
+                    deployUtils.unstashStageFiles(script, stageName)
                     cloudFoundryDeploy(
                         script: script,
                         juStabUtils: utils,
@@ -82,7 +83,7 @@ void call(parameters = [:]) {
                         mtaPath: script.commonPipelineEnvironment.mtarFilePath,
                         deployTool: deployTool
                     )
-                    utils.stashStageFiles(script, stageName)
+                    deployUtils.stashStageFiles(script, stageName)
                 }
                 deployments["Deployment ${i+1 > 1 ? i+1 : ''}"] = {
                     if (env.POD_NAME) {
