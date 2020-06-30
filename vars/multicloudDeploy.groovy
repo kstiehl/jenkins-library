@@ -68,8 +68,8 @@ void call(parameters = [:]) {
             def deployTool = script.commonPipelineEnvironment.configuration.isMta ? 'mtaDeployPlugin' : 'cf_native'
             Boolean runInNewWorkspace = false
 
-            if (deploymentType == "blue-green" && config.parallelExecution) {
-                runInNewWorkspace = true
+            if (config.cfTargets.size() > 1 && (deploymentType == "blue-green" || config.parallelExecution)) {
+                //runInNewWorkspace = true
                 echo "runInWorkSpace set to true"
                 println("thats the stageName: ${stageName}")
             }
@@ -79,14 +79,15 @@ void call(parameters = [:]) {
 
                 def target = config.cfTargets[i]
 
-                Closure deployment = { deploymentUtils ->
+                Closure deployment = {
+                    Utils deploymentUtils = new Utils()
                     if (runInNewWorkspace) {
                         deploymentUtils.unstashStageFiles(script, stageName)
                     }
 
                     cloudFoundryDeploy(
                         script: script,
-                        juStabUtils: deploymentUtils,
+                        juStabUtils: utils,
                         jenkinsUtilsStub: jenkinsUtils,
                         deployType: deploymentType,
                         cloudFoundry: target,
@@ -102,13 +103,13 @@ void call(parameters = [:]) {
                     deployments["Deployment ${index}"] = {
                         if (env.POD_NAME) {
                             dockerExecuteOnKubernetes(script: script, containerMap: ContainerMap.instance.getMap().get(stageName) ?: [:]) {
-                                deployment.call(utils)
+                                deployment.call()
                             }
                         } else {
                             println("Thats the env.node_name: ${env.NODE_NAME}")
                             node(env.NODE_NAME) {
                                 println("print before deployment.call()")
-                                deployment.call(utils)
+                                deployment.call()
                             }
                         }
                     }
