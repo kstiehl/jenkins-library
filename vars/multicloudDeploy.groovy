@@ -79,7 +79,7 @@ void call(parameters = [:]) {
                 Closure deployment = {
                     Utils deploymentUtils = new Utils()
                     if (runInIsolatedWorkspace) {
-                        deploymentUtils.unstashStageFiles(script, stageName)
+                        //deploymentUtils.unstashStageFiles(script, stageName)
                     }
 
                     cloudFoundryDeploy(
@@ -92,7 +92,7 @@ void call(parameters = [:]) {
                         deployTool: deployTool
                     )
                     if (runInIsolatedWorkspace) {
-                        deploymentUtils.stashStageFiles(script, stageName)
+                        //deploymentUtils.stashStageFiles(script, stageName)
                     }
                 }
                 if (runInIsolatedWorkspace){
