@@ -363,6 +363,8 @@ func ProcessMetaFiles(metadataFiles []string, targetDir string, stepHelperData S
 		myStepInfo, err := getStepInfo(&stepData, osImport, stepHelperData.ExportPrefix)
 		checkError(err)
 
+		validateStepInfo(myStepInfo)
+
 		step := stepTemplate(myStepInfo, "step", stepGoTemplate)
 		err = stepHelperData.WriteFile(filepath.Join(targetDir, fmt.Sprintf("%v_generated.go", stepData.Metadata.Name)), step, 0644)
 		checkError(err)
@@ -671,5 +673,13 @@ func mustUniqName(list []config.StepParameters) ([]config.StepParameters, error)
 		return dest, nil
 	default:
 		return nil, fmt.Errorf("Cannot find uniq on type %s", tp)
+	}
+}
+
+func validateStepInfo(step stepInfo) {
+	for _, param := range step.StepParameters {
+		if param.Secret && param.GetReference("vaultSecret") == nil && param.GetReference("vaultSecretFile") == nil {
+			fmt.Printf("Warning: Parameter '%s' in step %s is marked as a secret you might want to add a vault reference!\n", param.Name, step.StepName)
+		}
 	}
 }
